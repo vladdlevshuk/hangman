@@ -66,10 +66,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function showOverlay() {
     overlay.style.display = "block";
+    document.body.style.overflow = 'hidden';
+    disableKeyboardListener();
   }
 
   function hideOverlay() {
     overlay.style.display = "none";
+    document.body.style.overflow = '';
+    enableKeyboardListener();
   }
 
   let questions = [
@@ -81,16 +85,19 @@ document.addEventListener("DOMContentLoaded", function () {
     "This is a predatory fish that lives in fresh water",
     "This is the name of the largest planet in the solar system",
     "This is the name of the smallest bird",
-    "The name of the largest animal in the world",
-    "The name of the tallest grass"
+    "According to myth, this bird can be reborn from the ashes",
+    "The name of the tallest grass",
+    "This is a very popular stringed musical instrument",
+    "The name of a satellite of the Earth"
   ];
-  let answers = ["Ampere", "Amazon", "Eurasia", "Mars", "Pushkin", "Pike", "Jupiter", "Hummingbird", "Blue Whale", "Bamboo"];
+  let answers = ["Ampere", "Amazon", "Eurasia", "Mars", "Pushkin", "Pike", "Jupiter", "Hummingbird", "Phoenix", "Bamboo", "Guitar", "Moon"];
 
   let currentQuestionIndex;
   let secretWord;
   let incorrectGuesses;
   let guessedLetters;
   let playedQuestions = [];
+  let gameEnded = false;
 
   function startGame() {
     hideOverlay();
@@ -107,25 +114,30 @@ document.addEventListener("DOMContentLoaded", function () {
     secretWord = answers[currentQuestionIndex].toLowerCase();
     incorrectGuesses = 0;
     guessedLetters = new Set();
+    gameEnded = false;
+
+    console.log("Secret word:", secretWord);
+
+    enableKeyboardListener();
 
     updateUI();
   }
 
   function guessLetter(letter) {
-    if (!guessedLetters.has(letter)) {
+    if (!guessedLetters.has(letter) && !gameEnded) {
       guessedLetters.add(letter);
 
       if (secretWord.includes(letter)) {
         if (checkGameStatus()) {
           endGame("Congratulations! You guessed the word!");
         }
-        } else {
-          incorrectGuesses++;
-          currentAttemptImage++;
-          if (incorrectGuesses === 6) {
-            endGame("You lost. Try again.");
-          }
+      } else {
+        incorrectGuesses++;
+        currentAttemptImage++;
+        if (incorrectGuesses === 6) {
+          endGame("You lost. Try again.");
         }
+      }
       updateUI();
     }
   }
@@ -147,7 +159,7 @@ document.addEventListener("DOMContentLoaded", function () {
         guessLetter(letter);
         button.disabled = true;
       };
-      if (guessedLetters.has(letter)) {
+      if (guessedLetters.has(letter) || gameEnded) {
         button.disabled = true;
         button.classList.add("guessed");
       }
@@ -159,30 +171,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function getDisplayedWord() {
     return secretWord
-    .split("")
-    .map((letter) => (guessedLetters.has(letter) ? letter : "_"))
-    .join(" ");
+      .split("")
+      .map((letter) => (guessedLetters.has(letter) ? letter : "_"))
+      .join(" ");
   }
 
   function endGame(message) {
-    showOverlay();
+    if (!gameEnded) {
+      gameEnded = true;
+      showOverlay();
 
-    const modalMessage = document.createElement("p");
-    modalMessage.textContent = message;
+      const modalMessage = document.createElement("p");
+      modalMessage.textContent = message;
 
-    const modalWord = document.createElement("p");
-    modalWord.textContent = `Secret word: ${secretWord}`;
+      const modalWord = document.createElement("p");
+      modalWord.textContent = `Secret word: ${secretWord}`;
 
-    const playAgainButton = document.createElement("button");
-    playAgainButton.textContent = "Play again";
-    playAgainButton.onclick = restartGame;
+      const playAgainButton = document.createElement("button");
+      playAgainButton.textContent = "Play again";
+      playAgainButton.onclick = restartGame;
 
-    messageModalDiv.innerHTML = "";
-    messageModalDiv.appendChild(modalMessage);
-    messageModalDiv.appendChild(modalWord);
-    messageModalDiv.appendChild(playAgainButton);
+      messageModalDiv.innerHTML = "";
+      messageModalDiv.appendChild(modalMessage);
+      messageModalDiv.appendChild(modalWord);
+      messageModalDiv.appendChild(playAgainButton);
 
-    messageModalDiv.style.display = "flex";
+      messageModalDiv.style.display = "flex";
+    }
   }
 
   function restartGame() {
@@ -191,9 +206,15 @@ document.addEventListener("DOMContentLoaded", function () {
     startGame();
   }
 
-  startGame();
+  function enableKeyboardListener() {
+    document.addEventListener("keydown", keydownListener);
+  }
 
-  document.addEventListener("keydown", function (event) {
+  function disableKeyboardListener() {
+    document.removeEventListener("keydown", keydownListener);
+  }
+
+  function keydownListener(event) {
     const pressedKey = event.key.toLowerCase();
     if (/^[a-z]$/i.test(pressedKey) && !guessedLetters.has(pressedKey)) {
       guessLetter(pressedKey);
@@ -206,5 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
     }
-  });
+  }
+
+  startGame();
 });
